@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <limits>
 #include <list>
 #include <mutex>  // NOLINT
@@ -132,14 +133,32 @@ class LRUKReplacer {
    */
   auto Size() -> size_t;
 
+  class LinkedNode{
+    public:
+      explicit LinkedNode(frame_id_t key);
+      frame_id_t key_;
+      size_t frequency_;
+      LinkedNode* left_;
+      LinkedNode* right_;
+      bool evictable_;
+  };
+
  private:
   // TODO(student): implement me! You can replace these member variables as you like.
   // Remove maybe_unused if you start using them.
   [[maybe_unused]] size_t current_timestamp_{0};
-  [[maybe_unused]] size_t curr_size_{0};
-  [[maybe_unused]] size_t replacer_size_;
-  [[maybe_unused]] size_t k_;
+  size_t curr_size_;
+  size_t replacer_size_;
+  size_t k_;
   std::mutex latch_;
+
+  std::unordered_map<frame_id_t,LinkedNode*> map_;
+  LinkedNode* l_;
+  LinkedNode* m_;
+  LinkedNode* r_;//l与m中间为FIFO，m与r中间为LRU。
+  size_t fifo_size_;
+  size_t lru_size_;
+
 };
 
 }  // namespace bustub
