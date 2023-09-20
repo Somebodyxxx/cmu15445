@@ -49,25 +49,25 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
   if (free_list_.empty()) {
     if (replacer_->Evict(&frame_id)) {  // pincount=0时才能被置换
       disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
-      page_table_->Remove(pages_[frame_id].GetPageId());  //维护哈希表
+      page_table_->Remove(pages_[frame_id].GetPageId());  // 维护哈希表
     } else {
       return nullptr;
     }
   } else {
     frame_id = free_list_.back();
-    free_list_.pop_back();  //维护free_list_
+    free_list_.pop_back();  // 维护free_list_
   }
   page_id_t id = AllocatePage();
   *page_id = id;
   Page *new_page = pages_ + frame_id;
-  //metadata:
+  // metadata:
   new_page->ResetMemory();
   new_page->page_id_ = id;
   new_page->is_dirty_ = false;
   new_page->pin_count_ = 1;
-  
-  page_table_->Insert(id, frame_id);    //维护哈希表
-  replacer_->RecordAccess(frame_id);         //维护LRU-K
+
+  page_table_->Insert(id, frame_id);         // 维护哈希表
+  replacer_->RecordAccess(frame_id);         // 维护LRU-K
   replacer_->SetEvictable(frame_id, false);  // pin
   return new_page;
 }
@@ -75,45 +75,45 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
 auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
   std::scoped_lock<std::mutex> lock(latch_);
   frame_id_t value = -1;
-  //在内存中找到该页
+  // 在内存中找到该页
   if (page_table_->Find(page_id, value)) {
     (pages_ + value)->pin_count_++;
     replacer_->RecordAccess(value);
     replacer_->SetEvictable(value, false);
     return pages_ + value;
   }
-  //内存没有，需从磁盘读取page到内存
+  // 内存没有，需从磁盘读取page到内存
   frame_id_t frame_id;
   if (free_list_.empty()) {
     if (replacer_->Evict(&frame_id)) {
       disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
-      page_table_->Remove(pages_[frame_id].GetPageId());  //维护哈希表
+      page_table_->Remove(pages_[frame_id].GetPageId());  // 维护哈希表
     } else {
       return nullptr;
     }
   } else {
     frame_id = free_list_.back();
-    free_list_.pop_back();  //维护free_list_
+    free_list_.pop_back();  // 维护free_list_
   }
   Page *new_page = pages_ + frame_id;
-  //metadata:
+  // metadata:
   new_page->ResetMemory();
   new_page->page_id_ = page_id;
   new_page->is_dirty_ = false;
   new_page->pin_count_ = 1;
   disk_manager_->ReadPage(page_id, pages_[frame_id].GetData());
 
-  page_table_->Insert(page_id, frame_id);    //维护哈希表
-  replacer_->RecordAccess(frame_id);         //维护LRU-K
+  page_table_->Insert(page_id, frame_id);    // 维护哈希表
+  replacer_->RecordAccess(frame_id);         // 维护LRU-K
   replacer_->SetEvictable(frame_id, false);  // pin
-  
+
   return new_page;
 }
 
 auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> bool {
   std::scoped_lock<std::mutex> lock(latch_);
   frame_id_t index = -1;
-  //在内存中找不到该页
+  // 在内存中找不到该页
   if (!page_table_->Find(page_id, index)) {
     return false;
   }
@@ -124,16 +124,16 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
   if (pages_[index].pin_count_ == 0) {
     replacer_->SetEvictable(index, true);
   }
-  if(is_dirty){
+  if (is_dirty) {
     pages_[index].is_dirty_ = true;
   }
   return true;
 }
 
-auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool {  //判断pin_count才可以flush
+auto BufferPoolManagerInstance::FlushPgImp(page_id_t page_id) -> bool {  // 判断pin_count才可以flush
   std::scoped_lock<std::mutex> lock(latch_);
   frame_id_t value = -1;
-  //在内存中找到该页
+  // 在内存中找到该页
   if (!page_table_->Find(page_id, value)) {
     return false;
   }
@@ -152,19 +152,19 @@ void BufferPoolManagerInstance::FlushAllPgsImp() {
 auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   std::scoped_lock<std::mutex> lock(latch_);
   frame_id_t value = -1;
-  //在内存中找到该页
+  // 在内存中找到该页
   if (!page_table_->Find(page_id, value)) {
     return true;
   }
   if (pages_[value].pin_count_ != 0) {
     return false;
   }
-  page_table_->Remove(page_id);  //维护哈希表
-  replacer_->Remove(value);      //维护replacer
-  free_list_.emplace_back(value); //维护free_list_
+  page_table_->Remove(page_id);    // 维护哈希表
+  replacer_->Remove(value);        // 维护replacer
+  free_list_.emplace_back(value);  // 维护free_list_
   pages_[value].ResetMemory();
-  //这里需要清除其他标志位么？
-  DeallocatePage(page_id);  //这干啥的？没有具体实现 可以用吗？
+  // 这里需要清除其他标志位么？
+  DeallocatePage(page_id);  // 这干啥的？没有具体实现 可以用吗？
   return true;
 }
 
