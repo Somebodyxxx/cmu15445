@@ -48,7 +48,10 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
   frame_id_t frame_id;
   if (free_list_.empty()) {
     if (replacer_->Evict(&frame_id)) {  // pincount=0时才能被置换
-      disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
+      if (pages_[frame_id].IsDirty()) {
+        disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
+        pages_[frame_id].is_dirty_ = false;
+      }
       page_table_->Remove(pages_[frame_id].GetPageId());  // 维护哈希表
     } else {
       return nullptr;
@@ -86,7 +89,10 @@ auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
   frame_id_t frame_id;
   if (free_list_.empty()) {
     if (replacer_->Evict(&frame_id)) {
-      disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
+      if (pages_[frame_id].IsDirty()) {
+        disk_manager_->WritePage(pages_[frame_id].GetPageId(), pages_[frame_id].GetData());
+        pages_[frame_id].is_dirty_ = false;
+      }
       page_table_->Remove(pages_[frame_id].GetPageId());  // 维护哈希表
     } else {
       return nullptr;
@@ -163,6 +169,9 @@ auto BufferPoolManagerInstance::DeletePgImp(page_id_t page_id) -> bool {
   replacer_->Remove(value);        // 维护replacer
   free_list_.emplace_back(value);  // 维护free_list_
   pages_[value].ResetMemory();
+  pages_[value].is_dirty_ = false;
+  pages_[value].pin_count_ = 0;
+  pages_[value].page_id_ = INVALID_PAGE_ID;
   // 这里需要清除其他标志位么？
   DeallocatePage(page_id);  // 这干啥的？没有具体实现 可以用吗？
   return true;
