@@ -13,7 +13,7 @@
 #include "buffer/lru_k_replacer.h"
 #include <algorithm>
 #include <cstddef>
-#include <mutex>    // NOLINT
+#include <mutex>  // NOLINT
 #include "common/config.h"
 
 namespace bustub {
@@ -144,7 +144,6 @@ void LRUKReplacer::Remove(frame_id_t frame_id) {
 
 auto LRUKReplacer::Size() -> size_t { return lru_size_ + fifo_size_; }
 
-// ===============================LinkedNode==================================
 LRUKReplacer::LinkedNode::LinkedNode(frame_id_t key)
     : key_(key), frequency_(1), left_(nullptr), right_(nullptr), evictable_(false) {}
 
