@@ -99,6 +99,12 @@ void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
 
 void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
     std::scoped_lock<std::mutex> lock(latch_);
+    if(static_cast<size_t>(frame_id) > replacer_size_){
+        throw "invalid frame_id in LRU_K RecordAccess..";
+    }
+    if(map_.count(frame_id)==0){
+        return;
+    }
     bool old_flag = map_[frame_id]->evictable_;
     if((set_evictable && old_flag) || (!set_evictable&&!old_flag)){
         //没有改变
@@ -122,14 +128,14 @@ void LRUKReplacer::Remove(frame_id_t frame_id) {
         return;
     }
     LinkedNode* node = map_[frame_id];
-    if(node->frequency_>=2){
-        lru_size_--;
-    }else{
-        fifo_size_--;
-    }
     if(node->evictable_){
         node->left_->right_ = node->right_;
         node->right_->left_ = node->left_;
+        if(node->frequency_>=2){
+            lru_size_--;
+        }else{
+            fifo_size_--;
+        }
         delete node;
         map_.erase(frame_id);
     }
