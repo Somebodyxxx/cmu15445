@@ -12,7 +12,9 @@
 
 #include <queue>
 
+#include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
+
 
 namespace bustub {
 
@@ -34,6 +36,7 @@ namespace bustub {
  */
 INDEX_TEMPLATE_ARGUMENTS
 class BPlusTreeInternalPage : public BPlusTreePage {
+  using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
  public:
   // must call initialize method after "create" a new node
   void Init(page_id_t page_id, page_id_t parent_id = INVALID_PAGE_ID, int max_size = INTERNAL_PAGE_SIZE);
@@ -41,7 +44,15 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto KeyAt(int index) const -> KeyType;
   void SetKeyAt(int index, const KeyType &key);
   auto ValueAt(int index) const -> ValueType;
+  /* my function */
+  // 二分查找array数组中>=key对应的最小下标
+  auto FindIndex(const KeyType& key,const KeyComparator& comparator_) -> int;
 
+  // 插入键值对到叶子节点
+  void Insert(const KeyType& key,const ValueType& value,const KeyComparator& comparator_);
+  void InsertAfter(const KeyType& key,const ValueType& value);
+  void SetValue0(const ValueType& value);
+  
  private:
   // Flexible array member for page data.
   MappingType array_[1];

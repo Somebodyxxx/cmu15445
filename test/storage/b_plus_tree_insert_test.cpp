@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <algorithm>
+#include <cassert>
 #include <cstdio>
 
 #include "buffer/buffer_pool_manager_instance.h"
@@ -20,7 +21,7 @@
 
 namespace bustub {
 
-TEST(BPlusTreeTests, DISABLED_InsertTest1) {
+TEST(BPlusTreeTests, InsertTest1) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -64,7 +65,7 @@ TEST(BPlusTreeTests, DISABLED_InsertTest1) {
   remove("test.log");
 }
 
-TEST(BPlusTreeTests, DISABLED_InsertTest2) {
+TEST(BPlusTreeTests, InsertTest2) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -84,6 +85,7 @@ TEST(BPlusTreeTests, DISABLED_InsertTest2) {
   (void)header_page;
 
   std::vector<int64_t> keys = {1, 2, 3, 4, 5};
+  // std::vector<int64_t> keys = {1,2};
   for (auto key : keys) {
     int64_t value = key & 0xFFFFFFFF;
     rid.Set(static_cast<int32_t>(key >> 32), value);
@@ -95,7 +97,8 @@ TEST(BPlusTreeTests, DISABLED_InsertTest2) {
   for (auto key : keys) {
     rids.clear();
     index_key.SetFromInteger(key);
-    tree.GetValue(index_key, &rids);
+    bool flag = tree.GetValue(index_key, &rids);
+    assert(flag);
     EXPECT_EQ(rids.size(), 1);
 
     int64_t value = key & 0xFFFFFFFF;

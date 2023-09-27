@@ -13,7 +13,9 @@
 #include <utility>
 #include <vector>
 
+#include "buffer/buffer_pool_manager.h"
 #include "storage/page/b_plus_tree_page.h"
+#include "type/value.h"
 
 namespace bustub {
 
@@ -50,6 +52,16 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
 
+  /* my function */
+  // 在叶子节点中寻找key对应的value值,找不到返回false
+  auto FindKey(const KeyType& key,ValueType& value,const KeyComparator& comparator_) -> bool;
+  // 二分查找array数组中>=key对应的最小下标
+  auto FindIndex(const KeyType& key,const KeyComparator& comparator_) -> int;
+  auto ValueAt(int index) const ->ValueType;
+  void InsertAfter(const KeyType& key,const ValueType& value);
+  
+  // 插入键值对到叶子节点
+  void Insert(const KeyType& key,const ValueType& value,const KeyComparator& comparator_);
  private:
   page_id_t next_page_id_;
   // Flexible array member for page data.
