@@ -62,6 +62,8 @@ class BPlusTreePage {
 
   void SetLSN(lsn_t lsn = INVALID_LSN);
 
+  /* ==============my function =============*/
+
  private:
   // member variable, attributes that both internal and leaf page share
   IndexPageType page_type_;

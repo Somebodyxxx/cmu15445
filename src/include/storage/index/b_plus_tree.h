@@ -90,6 +90,9 @@ class BPlusTree {
   auto LeafSplit(LeafPage* leaf_node) -> LeafPage*;
   auto InternalSplit(InternalPage* internal_page) -> InternalPage*;
   void InsertIntoParent(BPlusTreePage* old_node,const KeyType& key,BPlusTreePage* new_node);
+  void UpdataParentKey(KeyType old_key,KeyType new_key,BPlusTreePage* cur_node);
+  auto RedistributeBrother(const KeyType& key,BPlusTreePage* cur) -> bool;
+  void MergeBrother(const KeyType& key, BPlusTreePage* cur);
 
   // member variable
   std::string index_name_;

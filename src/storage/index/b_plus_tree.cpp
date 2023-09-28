@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstring>
 #include <string>
+#include <utility>
 
 #include "buffer/buffer_pool_manager.h"
 #include "common/config.h"
@@ -12,6 +13,7 @@
 #include "storage/page/b_plus_tree_page.h"
 #include "storage/page/header_page.h"
 #include "storage/page/page.h"
+#include "type/value.h"
 
 namespace bustub {
 INDEX_TEMPLATE_ARGUMENTS
@@ -205,7 +207,225 @@ auto BPLUSTREE_TYPE::InternalSplit(InternalPage* internal_page) -> InternalPage*
  * necessary.
  */
 INDEX_TEMPLATE_ARGUMENTS
-void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {}
+void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
+  if(IsEmpty()){
+    return;
+  }
+  LeafPage* leaf_node = FindLeaf(key);
+  int leaf_old_size = leaf_node->GetSize();
+  assert(leaf_old_size>0);
+  KeyType old_key0 = leaf_node->KeyAt(0);
+  leaf_node->Remove(key,comparator_);
+  if(leaf_node->IsRootPage()){
+    return;
+  }
+  //1 oldsize > minsize ,直接删，更新父节点Key值
+  if(leaf_old_size>leaf_node->GetMinSize()){
+    assert(leaf_old_size>1);
+    //由于内部节点不存在相等的key，只有叶子节点最多需要更新父节点Key一次 不用递归？
+    if(comparator_(old_key0,key)==0){
+      UpdataParentKey(key,leaf_node->KeyAt(0),leaf_node);
+    }
+    return;
+  }
+  //2 oldsize<=minsize
+  //左右兄弟叶子节点有>minsize，分一分，更新父节点key（因为要递归执行 放在MergeBrother函数中了）
+  // if(RedistributeBrother(key,leaf_node)){
+  //   return;
+  // }
+  //左右兄弟节点都<=minsize,合并，删除父节点中对应的key，更新父父节点key，递归此过程（根节点另外判断size>1)。
+  MergeBrother(key,leaf_node);
+}
+
+/* ==============My function for remove================*/
+INDEX_TEMPLATE_ARGUMENTS
+void BPLUSTREE_TYPE::UpdataParentKey(KeyType old_key,KeyType new_key,BPlusTreePage* cur_node){
+  page_id_t parent_id = cur_node->GetParentPageId();
+  //if -1 ，根节点,上层已经判断过 不可能存在
+  assert(parent_id);
+  Page* parent_page = buffer_pool_manager_->FetchPage(parent_id);
+  auto parent_node = reinterpret_cast<InternalPage*>(parent_page);
+  int index = parent_node->FindIndex(old_key,comparator_) - 1;
+  assert(cur_node->GetPageId()==parent_node->ValueAt(index));
+  if(comparator_(parent_node->KeyAt(index),old_key)==0){
+    parent_node->SetKeyAt(index,new_key);
+  }
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::RedistributeBrother(const KeyType& key,BPlusTreePage* cur_node) -> bool{
+  page_id_t parent_id = cur_node->GetParentPageId();
+  //if -1 ，根节点,上层已经判断过 不可能存在
+  assert(parent_id);
+  Page* parent_page = buffer_pool_manager_->FetchPage(parent_id);
+  auto parent_node = reinterpret_cast<InternalPage*>(parent_page);
+  //定位 到父节点中 指向cur_node的key：
+  int index = parent_node->FindIndex(key,comparator_) - 1;
+  assert(cur_node->GetPageId()==parent_node->ValueAt(index));
+  //优先与左子节点redistribute？？ //TODO:
+  if(index - 1 > 0){
+    //左兄弟节点存在
+    page_id_t left_brother_page_id = parent_node->ValueAt(index-1);
+    Page* left_brother_page = buffer_pool_manager_->FetchPage(left_brother_page_id);
+    auto left_brother_node = reinterpret_cast<BPlusTreePage*>(left_brother_page);
+    //左兄弟是富哥
+    if(left_brother_node->GetSize()>left_brother_node->GetMinSize()){
+      //判断节点类型,处理方式不同
+      //叶子节点： 左边借过来之后直接UpdateParentKey就行
+      if(left_brother_node->IsLeafPage()){
+        auto left_brother_leaf_node = reinterpret_cast<LeafPage*>(left_brother_node);
+        auto cur_leaf_node = reinterpret_cast<LeafPage*>(cur_node);
+        cur_leaf_node->PushFront(left_brother_leaf_node->PopBack());
+        //UpdateParentKey
+        parent_node->SetKeyAt(index,cur_leaf_node->KeyAt(0));
+      }else{
+        //内部节点： 需要左边上升到父节点 父节点的Key借过来,重点注意value的变化
+        auto left_brother_inner_node = reinterpret_cast<InternalPage*>(left_brother_node);
+        auto cur_inner_node = reinterpret_cast<InternalPage*>(cur_node);
+        auto kv = left_brother_inner_node->PopBack();
+        //Update ParentKey 下移 
+        KeyType parent_key = parent_node->KeyAt(index);
+        parent_node->SetKeyAt(index,kv.first);
+        cur_inner_node->SetKeyAt(0,parent_key);
+        cur_inner_node->PushFront(kv);
+      }
+      return true;
+    }
+  }
+  if(index + 1 < parent_node->GetSize()){
+    //右兄弟节点存在
+    page_id_t right_brother_page_id = parent_node->ValueAt(index+1);
+    Page* right_brother_page = buffer_pool_manager_->FetchPage(right_brother_page_id);
+    auto right_brother_node = reinterpret_cast<BPlusTreePage*>(right_brother_page);
+    //右兄弟是富哥
+    if(right_brother_node->GetSize()>right_brother_node->GetMinSize()){
+      //叶子节点： 右边借过来之后直接Update 下一个Index的ParentKey就行
+      if(right_brother_node->IsLeafPage()){
+        auto right_brother_leaf_node = reinterpret_cast<LeafPage*>(right_brother_node);
+        auto cur_leaf_node = reinterpret_cast<LeafPage*>(cur_node);
+        auto kv = right_brother_leaf_node->PopFront();
+        cur_leaf_node->PushBack(kv);
+        parent_node->SetKeyAt(index+1,right_brother_leaf_node->KeyAt(0));
+      }else{
+        //内部节点： 需要右边上升到父节点 父节点的Key借过来,重点注意value的变化
+        auto right_brother_inner_node = reinterpret_cast<InternalPage*>(right_brother_node);
+        auto cur_inner_node = reinterpret_cast<InternalPage*>(cur_node);
+        KeyType parent_key = parent_node->KeyAt(index+1);
+        right_brother_inner_node->SetKeyAt(0,parent_key);
+        auto kv = right_brother_inner_node->PopFront();
+        parent_node->SetKeyAt(index+1,right_brother_inner_node->KeyAt(0));
+        cur_inner_node->PushBack(kv);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void BPLUSTREE_TYPE::MergeBrother(const KeyType& key, BPlusTreePage* cur_node){
+  //递归终止条件
+  if(cur_node->IsRootPage()){
+    //如果size为空，被子节点顶替 TODO:
+    assert(!cur_node->IsLeafPage());
+    if(cur_node->GetSize()==1){
+      auto old_root = reinterpret_cast<InternalPage*>(cur_node);
+      page_id_t new_root_page_id = old_root->ValueAt(0);
+      buffer_pool_manager_->DeletePage(root_page_id_);
+      root_page_id_ = new_root_page_id;
+    }
+    return;
+  }
+
+  if(cur_node->GetSize()>=cur_node->GetMinSize()){
+    return;
+  }
+  if(RedistributeBrother(key, cur_node)){
+    //如果能重分配均匀，则不需要merge节点
+    return;
+  }
+  page_id_t parent_page_id = cur_node->GetParentPageId();
+  Page* parent_page = buffer_pool_manager_->FetchPage(parent_page_id);
+  auto parent_node = reinterpret_cast<InternalPage*>(parent_page);
+  //定位 到父节点中 指向cur_node的key：
+  int index = parent_node->FindIndex(key,comparator_) - 1;
+  assert(cur_node->GetPageId()==parent_node->ValueAt(index));
+
+  //优先与左兄弟节点合并
+  if(index-1>0){
+    page_id_t left_brother_page_id = parent_node->ValueAt(index-1);
+    Page* left_brother_page = buffer_pool_manager_->FetchPage(left_brother_page_id);
+    auto left_brother_node = reinterpret_cast<BPlusTreePage*>(left_brother_page);
+
+    //错误的陷阱：不用判断size，因为merge是在调用完Redistribute失败后调用，存在就一定能合并
+    // assert(left_brother_node->GetSize()>=left_brother_node->GetMinSize());
+    // assert(cur_node->GetSize()<cur_node->GetMinSize());
+
+    //需要判断size，因为会存在向上的递归调用。
+    //非叶子节点可以满，叶子节点不可以满，所以在判断完类型后再判断size
+
+    //叶子节点的合并
+    if(cur_node->IsLeafPage() && (left_brother_node->GetSize()+cur_node->GetSize() < cur_node->GetMaxSize()) ){
+        auto left_leaf_node = reinterpret_cast<LeafPage*>(left_brother_node);
+        auto cur_leaf_node = reinterpret_cast<LeafPage*>(cur_node);
+        int cur_size = cur_leaf_node->GetSize();
+        for(int i = 0; i < cur_size;i++){
+          left_leaf_node->PushBack(std::make_pair(cur_leaf_node->KeyAt(i), cur_leaf_node->ValueAt(i)));
+        }
+        cur_leaf_node->SetSize(0);
+        parent_node->RemoveByIndex(index);
+        MergeBrother(key, parent_node);
+        return;
+    }
+    //内部节点的合并
+    if(!cur_node->IsLeafPage() && (left_brother_node->GetSize()+cur_node->GetSize() <= cur_node->GetMaxSize()) ){
+      auto left_inner_node = reinterpret_cast<InternalPage*>(left_brother_node);
+      auto cur_inner_node = reinterpret_cast<InternalPage*>(cur_node);
+      int cur_size = cur_inner_node->GetSize();
+      for(int i = 0; i < cur_size; i++){
+        left_inner_node->PushBack(std::make_pair(left_inner_node->KeyAt(i), left_inner_node->ValueAt(i)));
+      }
+      cur_inner_node->SetSize(0);
+      parent_node->RemoveByIndex(index);
+      MergeBrother(key, parent_node);
+      return;
+    }
+  }
+  //与右兄弟节点合并
+  if(index + 1 < parent_node->GetSize()){
+    page_id_t right_brother_page_id = parent_node->ValueAt(index+1);
+    Page* right_brother_page = buffer_pool_manager_->FetchPage(right_brother_page_id);
+    auto right_brother_node = reinterpret_cast<BPlusTreePage*>(right_brother_page);
+
+    //叶子节点的合并
+    if(cur_node->IsLeafPage() && (right_brother_node->GetSize()+cur_node->GetSize() < cur_node->GetMaxSize()) ){
+        auto right_leaf_node = reinterpret_cast<LeafPage*>(right_brother_node);
+        auto cur_leaf_node = reinterpret_cast<LeafPage*>(cur_node);
+        int right_leaf_node_size = right_leaf_node->GetSize();
+        for(int i = 0; i < right_leaf_node_size;i++){
+          cur_leaf_node->PushBack(std::make_pair(right_leaf_node->KeyAt(i), right_leaf_node->ValueAt(i)));
+        }
+        right_leaf_node->SetSize(0);
+        parent_node->RemoveByIndex(index+1);
+        MergeBrother(key, parent_node);
+        return;
+    }
+    //内部节点的合并
+    if(!cur_node->IsLeafPage() && (right_brother_node->GetSize()+cur_node->GetSize() <= cur_node->GetMaxSize()) ){
+      auto right_inner_node = reinterpret_cast<InternalPage*>(right_brother_node);
+      auto cur_inner_node = reinterpret_cast<InternalPage*>(cur_node);
+      int right_inner_node_size = right_inner_node->GetSize();
+      for(int i = 0; i < right_inner_node_size; i++){
+        cur_inner_node->PushBack(std::make_pair(right_inner_node->KeyAt(i), right_inner_node->ValueAt(i)));
+      }
+      right_inner_node->SetSize(0);
+      parent_node->RemoveByIndex(index+1);
+      MergeBrother(key, parent_node);
+      return;
+    }
+  }
+  assert(0);//如果这里报错 说明没有正确merge 否则前面就return了 不可能所有条件都不满足到这里
+}
 
 /*****************************************************************************
  * INDEX ITERATOR

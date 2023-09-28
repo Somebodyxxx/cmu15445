@@ -52,6 +52,14 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   void Insert(const KeyType& key,const ValueType& value,const KeyComparator& comparator_);
   void InsertAfter(const KeyType& key,const ValueType& value);
   void SetValue0(const ValueType& value);
+
+  auto PopBack() -> MappingType;
+  void PushFront(MappingType kv);
+
+  auto PopFront() -> MappingType;
+  void PushBack(MappingType kv);
+
+  void RemoveByIndex(int index);
   
  private:
   // Flexible array member for page data.

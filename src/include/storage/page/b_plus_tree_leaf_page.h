@@ -62,6 +62,16 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   
   // 插入键值对到叶子节点
   void Insert(const KeyType& key,const ValueType& value,const KeyComparator& comparator_);
+
+  //删除对应的键值
+  void Remove(const KeyType& key, const KeyComparator& comparator_);
+
+  auto PopBack() -> MappingType;
+  void PushFront(MappingType kv);
+
+  auto PopFront() -> MappingType;
+  void PushBack(MappingType kv);
+  /************************************************************************/ 
  private:
   page_id_t next_page_id_;
   // Flexible array member for page data.

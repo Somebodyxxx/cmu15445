@@ -140,6 +140,55 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType& key,const ValueType& valu
   IncreaseSize(1);
 }
 
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType& key, const KeyComparator& comparator_){
+  int index = FindIndex(key,comparator_);
+  if(comparator_(array_[index].first,key)!=0){
+    //没找对，不存在该key，不能删
+    return;
+  }
+  int size = GetSize();
+  for(int i = index;i+1<size;i++){
+    array_[i] = array_[i+1];
+  }
+  IncreaseSize(-1);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::PopBack() -> MappingType{
+  int size = GetSize();
+  MappingType kv = std::make_pair(array_[size].first, array_[size].second);
+  IncreaseSize(-1);
+  return kv;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::PushFront(MappingType kv){
+  int size = GetSize();
+  for(int i = 0; i < size; i++){
+    array_[i+1] = array_[i];
+  }
+  IncreaseSize(1);
+  array_[0] = kv;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::PopFront() -> MappingType{
+  MappingType kv = std::make_pair(array_[0].first, array_[0].second);
+  int size = GetSize();
+  for(int i = 0;i+1<size;i++){
+    array_[i] = array_[i+1];
+  }
+  IncreaseSize(-1);
+  return kv;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void B_PLUS_TREE_LEAF_PAGE_TYPE::PushBack(MappingType kv){
+  array_[GetSize()] = kv;
+  IncreaseSize(1);
+}
+
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 template class BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>>;
 template class BPlusTreeLeafPage<GenericKey<16>, RID, GenericComparator<16>>;
