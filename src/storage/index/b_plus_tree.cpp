@@ -9,6 +9,7 @@
 #include "common/logger.h"
 #include "common/rid.h"
 #include "storage/index/b_plus_tree.h"
+#include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_page.h"
 #include "storage/page/header_page.h"
@@ -459,7 +460,20 @@ void BPLUSTREE_TYPE::MergeBrother(const KeyType& key, BPlusTreePage* cur_node){
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
+  assert(!IsEmpty());
+  Page* root_page = buffer_pool_manager_->FetchPage(root_page_id_);
+  auto cur_node = reinterpret_cast<BPlusTreePage*>(root_page->GetData());
+  while(!cur_node->IsLeafPage()){
+    auto inner_node = reinterpret_cast<InternalPage*>(cur_node);
+    auto page_id = inner_node->ValueAt(0);
+    Page* next_page = buffer_pool_manager_->FetchPage(page_id);
+    cur_node = reinterpret_cast<BPlusTreePage*>(next_page->GetData());
+    buffer_pool_manager_->UnpinPage(page_id,false);
+  }
+  buffer_pool_manager_->UnpinPage(root_page_id_,false);
+  return INDEXITERATOR_TYPE(reinterpret_cast<LeafPage*>(cur_node),0,buffer_pool_manager_);
+}
 
 /*
  * Input parameter is low key, find the leaf page that contains the input key
@@ -467,7 +481,12 @@ auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE()
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
+  assert(!IsEmpty());
+  LeafPage* leaf_node = FindLeaf(key);
+  int index = leaf_node->FindIndex(key, comparator_);
+  return INDEXITERATOR_TYPE(leaf_node,index,buffer_pool_manager_); 
+}
 
 /*
  * Input parameter is void, construct an index iterator representing the end
@@ -475,7 +494,21 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return IN
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
+auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE {
+  assert(!IsEmpty());
+  Page* root_page = buffer_pool_manager_->FetchPage(root_page_id_);
+  auto cur_node = reinterpret_cast<BPlusTreePage*>(root_page->GetData());
+  while(!cur_node->IsLeafPage()){
+    auto inner_node = reinterpret_cast<InternalPage*>(cur_node);
+    auto page_id = inner_node->ValueAt(inner_node->GetSize()-1);
+    Page* next_page = buffer_pool_manager_->FetchPage(page_id);
+    cur_node = reinterpret_cast<BPlusTreePage*>(next_page->GetData());
+    buffer_pool_manager_->UnpinPage(page_id,false);
+  }
+  buffer_pool_manager_->UnpinPage(root_page_id_,false);
+  int max_index = cur_node->GetSize()-1;
+  return INDEXITERATOR_TYPE(reinterpret_cast<LeafPage*>(cur_node),max_index+1,buffer_pool_manager_);
+}
 
 /**
  * @return Page id of the root of this tree

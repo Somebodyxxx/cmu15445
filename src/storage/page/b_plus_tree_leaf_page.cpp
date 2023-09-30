@@ -61,6 +61,11 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType {
 
 /* ================= my function =================*/
 INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::MappingAt(int index) -> const MappingType&{
+  return array_[index];
+}
+
+INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType& key,ValueType& value,const KeyComparator& comparator_) -> bool{
   // int index = FindIndex(key,comparator_);
   // if(comparator_(array_[index].first,key)==0){

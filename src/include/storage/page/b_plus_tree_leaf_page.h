@@ -58,6 +58,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   // 二分查找array数组中>=key对应的最小下标
   auto FindIndex(const KeyType& key,const KeyComparator& comparator_) -> int;
   auto ValueAt(int index) const ->ValueType;
+  auto MappingAt(int index) -> const MappingType&;
   void InsertAfter(const KeyType& key,const ValueType& value);
   
   // 插入键值对到叶子节点
