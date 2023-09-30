@@ -85,18 +85,18 @@ class BPlusTree {
   void ToString(BPlusTreePage *page, BufferPoolManager *bpm) const;
 
   /* query\insert 实现子函数 */
-  auto FindLeaf(const KeyType &key) -> LeafPage*;
+  auto FindLeaf(const KeyType &key) -> LeafPage *;
   void InsertIntoLeaf(const KeyType &key, const ValueType &value);
-  auto LeafSplit(LeafPage* leaf_node) -> LeafPage*;
-  auto InternalSplit(InternalPage* internal_page) -> InternalPage*;
-  void InsertIntoParent(BPlusTreePage* old_node,const KeyType& key,BPlusTreePage* new_node);
-  void UpdataParentKey(KeyType old_key,KeyType new_key,BPlusTreePage* cur_node);
-  auto RedistributeBrother(const KeyType& key,BPlusTreePage* cur) -> bool;
-  void MergeBrother(const KeyType& key, BPlusTreePage* cur);
+  auto LeafSplit(LeafPage *leaf_node) -> LeafPage *;
+  auto InternalSplit(InternalPage *internal_page) -> InternalPage *;
+  void InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node);
+  void UpdataParentKey(KeyType old_key, KeyType new_key, BPlusTreePage *cur_node);
+  auto RedistributeBrother(const KeyType &key, BPlusTreePage *cur) -> bool;
+  void MergeBrother(const KeyType &key, BPlusTreePage *cur);
 
   // member variable
   std::string index_name_;
-  page_id_t root_page_id_=-1;
+  page_id_t root_page_id_ = -1;
   BufferPoolManager *buffer_pool_manager_;
   KeyComparator comparator_;
   int leaf_max_size_;

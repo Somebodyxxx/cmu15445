@@ -15,7 +15,6 @@
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
 
-
 namespace bustub {
 
 #define B_PLUS_TREE_INTERNAL_PAGE_TYPE BPlusTreeInternalPage<KeyType, ValueType, KeyComparator>
@@ -37,6 +36,7 @@ namespace bustub {
 INDEX_TEMPLATE_ARGUMENTS
 class BPlusTreeInternalPage : public BPlusTreePage {
   using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
+
  public:
   // must call initialize method after "create" a new node
   void Init(page_id_t page_id, page_id_t parent_id = INVALID_PAGE_ID, int max_size = INTERNAL_PAGE_SIZE);
@@ -46,12 +46,12 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto ValueAt(int index) const -> ValueType;
   /* my function */
   // 二分查找array数组中>=key对应的最小下标
-  auto FindIndex(const KeyType& key,const KeyComparator& comparator_) -> int;
+  auto FindIndex(const KeyType &key, const KeyComparator &comparator_) -> int;
 
   // 插入键值对到叶子节点
-  void Insert(const KeyType& key,const ValueType& value,const KeyComparator& comparator_);
-  void InsertAfter(const KeyType& key,const ValueType& value);
-  void SetValue0(const ValueType& value);
+  void Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator_);
+  void InsertAfter(const KeyType &key, const ValueType &value);
+  void SetValue0(const ValueType &value);
 
   auto PopBack() -> MappingType;
   void PushFront(MappingType kv);
@@ -60,7 +60,7 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   void PushBack(MappingType kv);
 
   void RemoveByIndex(int index);
-  
+
  private:
   // Flexible array member for page data.
   MappingType array_[1];

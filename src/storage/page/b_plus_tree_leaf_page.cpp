@@ -46,27 +46,22 @@ INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetNextPageId() const -> page_id_t { return next_page_id_; }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::SetNextPageId(page_id_t next_page_id) {
-  next_page_id_=next_page_id;
-}
+void B_PLUS_TREE_LEAF_PAGE_TYPE::SetNextPageId(page_id_t next_page_id) { next_page_id_ = next_page_id; }
 
 /*
  * Helper method to find and return the key associated with input "index"(a.k.a
  * array offset)
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType {
-  return array_[index].first;
-}
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType { return array_[index].first; }
 
 /* ================= my function =================*/
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::MappingAt(int index) -> const MappingType&{
-  return array_[index];
-}
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::MappingAt(int index) -> const MappingType & { return array_[index]; }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType& key,ValueType& value,const KeyComparator& comparator_) -> bool{
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType &key, ValueType &value, const KeyComparator &comparator_)
+    -> bool {
   // int index = FindIndex(key,comparator_);
   // if(comparator_(array_[index].first,key)==0){
   //   value = array_[index].second;
@@ -88,9 +83,9 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType& key,ValueType& value,con
   //   }
   // }
   // return false;
-  assert(GetSize()<=GetMaxSize());
-  for(int i = 0; i <GetSize();i++){
-    if(comparator_(array_[i].first,key)==0){
+  assert(GetSize() <= GetMaxSize());
+  for (int i = 0; i < GetSize(); i++) {
+    if (comparator_(array_[i].first, key) == 0) {
       value = array_[i].second;
       return true;
     }
@@ -99,7 +94,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType& key,ValueType& value,con
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindIndex(const KeyType& key,const KeyComparator& comparator_) -> int{
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindIndex(const KeyType &key, const KeyComparator &comparator_) -> int {
   // //找到第一个>=key的位置
   // int left = 0;
   // int right = this->GetSize()-1;
@@ -114,8 +109,8 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindIndex(const KeyType& key,const KeyComparato
   // // 指针的Index对应于第一个>=key的位置的前一个key-value
   // return left;
   int i = 0;
-  for(;i < GetSize();i++){
-    if(comparator_(array_[i].first,key)>=0){
+  for (; i < GetSize(); i++) {
+    if (comparator_(array_[i].first, key) >= 0) {
       break;
     }
   }
@@ -123,44 +118,42 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindIndex(const KeyType& key,const KeyComparato
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) const ->ValueType{
-  return array_[index].second;
-}
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) const -> ValueType { return array_[index].second; }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::InsertAfter(const KeyType& key,const ValueType& value){
+void B_PLUS_TREE_LEAF_PAGE_TYPE::InsertAfter(const KeyType &key, const ValueType &value) {
   int last = GetSize();
   array_[last] = std::make_pair(key, value);
   IncreaseSize(1);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType& key,const ValueType& value,const KeyComparator& comparator_){
+void B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator_) {
   int index = FindIndex(key, comparator_);
   int size = GetSize();
-  for(int i = size; i > index;i--){
-    array_[i] = array_[i-1];
+  for (int i = size; i > index; i--) {
+    array_[i] = array_[i - 1];
   }
   array_[index] = std::make_pair(key, value);
   IncreaseSize(1);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType& key, const KeyComparator& comparator_){
-  int index = FindIndex(key,comparator_);
-  if(comparator_(array_[index].first,key)!=0){
-    //没找对，不存在该key，不能删
+void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, const KeyComparator &comparator_) {
+  int index = FindIndex(key, comparator_);
+  if (comparator_(array_[index].first, key) != 0) {
+    // 没找对，不存在该key，不能删
     return;
   }
   int size = GetSize();
-  for(int i = index;i+1<size;i++){
-    array_[i] = array_[i+1];
+  for (int i = index; i + 1 < size; i++) {
+    array_[i] = array_[i + 1];
   }
   IncreaseSize(-1);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::PopBack() -> MappingType{
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::PopBack() -> MappingType {
   int size = GetSize();
   MappingType kv = std::make_pair(array_[size].first, array_[size].second);
   IncreaseSize(-1);
@@ -168,28 +161,28 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::PopBack() -> MappingType{
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::PushFront(MappingType kv){
+void B_PLUS_TREE_LEAF_PAGE_TYPE::PushFront(MappingType kv) {
   int size = GetSize();
-  for(int i = 0; i < size; i++){
-    array_[i+1] = array_[i];
+  for (int i = 0; i < size; i++) {
+    array_[i + 1] = array_[i];
   }
   IncreaseSize(1);
   array_[0] = kv;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::PopFront() -> MappingType{
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::PopFront() -> MappingType {
   MappingType kv = std::make_pair(array_[0].first, array_[0].second);
   int size = GetSize();
-  for(int i = 0;i+1<size;i++){
-    array_[i] = array_[i+1];
+  for (int i = 0; i + 1 < size; i++) {
+    array_[i] = array_[i + 1];
   }
   IncreaseSize(-1);
   return kv;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::PushBack(MappingType kv){
+void B_PLUS_TREE_LEAF_PAGE_TYPE::PushBack(MappingType kv) {
   array_[GetSize()] = kv;
   IncreaseSize(1);
 }
