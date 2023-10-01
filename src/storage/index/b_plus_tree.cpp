@@ -391,6 +391,7 @@ void BPLUSTREE_TYPE::MergeBrother(const KeyType &key, BPlusTreePage *cur_node) {
       MergeBrother(key, parent_node);
       buffer_pool_manager_->UnpinPage(left_brother_page_id, true);
       buffer_pool_manager_->UnpinPage(parent_page_id, true);
+      assert(buffer_pool_manager_->DeletePage(cur_leaf_node->GetPageId()));
       return;
     }
     // 内部节点的合并
@@ -398,6 +399,7 @@ void BPLUSTREE_TYPE::MergeBrother(const KeyType &key, BPlusTreePage *cur_node) {
       auto left_inner_node = reinterpret_cast<InternalPage *>(left_brother_node);
       auto cur_inner_node = reinterpret_cast<InternalPage *>(cur_node);
       int cur_size = cur_inner_node->GetSize();
+      cur_inner_node->SetKeyAt(0,parent_node->KeyAt(index));
       for (int i = 0; i < cur_size; i++) {
         left_inner_node->PushBack(std::make_pair(left_inner_node->KeyAt(i), left_inner_node->ValueAt(i)));
       }
@@ -406,6 +408,7 @@ void BPLUSTREE_TYPE::MergeBrother(const KeyType &key, BPlusTreePage *cur_node) {
       MergeBrother(key, parent_node);
       buffer_pool_manager_->UnpinPage(left_brother_page_id, true);
       buffer_pool_manager_->UnpinPage(parent_page_id, true);
+      assert(buffer_pool_manager_->DeletePage(cur_inner_node->GetPageId()));
       return;
     }
     buffer_pool_manager_->UnpinPage(parent_page_id, false);
@@ -429,6 +432,7 @@ void BPLUSTREE_TYPE::MergeBrother(const KeyType &key, BPlusTreePage *cur_node) {
       MergeBrother(key, parent_node);
       buffer_pool_manager_->UnpinPage(right_brother_page_id, true);
       buffer_pool_manager_->UnpinPage(parent_page_id, true);
+      assert(buffer_pool_manager_->DeletePage(right_leaf_node->GetPageId()));
       return;
     }
     // 内部节点的合并
@@ -436,6 +440,7 @@ void BPLUSTREE_TYPE::MergeBrother(const KeyType &key, BPlusTreePage *cur_node) {
       auto right_inner_node = reinterpret_cast<InternalPage *>(right_brother_node);
       auto cur_inner_node = reinterpret_cast<InternalPage *>(cur_node);
       int right_inner_node_size = right_inner_node->GetSize();
+      right_inner_node->SetKeyAt(0,parent_node->KeyAt(index+1));
       for (int i = 0; i < right_inner_node_size; i++) {
         cur_inner_node->PushBack(std::make_pair(right_inner_node->KeyAt(i), right_inner_node->ValueAt(i)));
       }
@@ -444,6 +449,7 @@ void BPLUSTREE_TYPE::MergeBrother(const KeyType &key, BPlusTreePage *cur_node) {
       MergeBrother(key, parent_node);
       buffer_pool_manager_->UnpinPage(right_brother_page_id, true);
       buffer_pool_manager_->UnpinPage(parent_page_id, true);
+      assert(buffer_pool_manager_->DeletePage(right_brother_node->GetPageId()));
       return;
     }
   }
