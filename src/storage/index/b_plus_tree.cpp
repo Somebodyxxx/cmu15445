@@ -218,6 +218,10 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   KeyType old_key0 = leaf_node->KeyAt(0);
   leaf_node->Remove(key, comparator_);
   if (leaf_node->IsRootPage()) {
+    if(leaf_node->GetSize()==0){
+      root_page_id_=-1;
+      buffer_pool_manager_->DeletePage(leaf_node->GetPageId());
+    }
     return;
   }
   // 1 oldsize > minsize ,直接删，更新父节点Key值
