@@ -47,7 +47,7 @@ auto BPlusTreePage::GetMinSize() const -> int {
     return (max_size_ + 1) / 2;  // 叶子节点，key=n ,n/2取上整
   }
   // 非叶子节点
-  return (max_size_ - 1 + 1) / 2;  // 有效key = n-1, (n-1)/2取上整
+  return (max_size_ - 1 + 1) / 2 + 1;  // 有效key = n-1, (n-1)/2取上整
 }
 
 /*

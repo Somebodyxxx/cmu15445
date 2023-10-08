@@ -61,7 +61,6 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
     free_list_.pop_back();  // 维护free_list_
   }
   page_id_t id = AllocatePage();
-  *page_id = id;
   Page *new_page = pages_ + frame_id;
   // metadata:
   new_page->ResetMemory();
@@ -72,6 +71,7 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
   page_table_->Insert(id, frame_id);         // 维护哈希表
   replacer_->RecordAccess(frame_id);         // 维护LRU-K
   replacer_->SetEvictable(frame_id, false);  // pin
+  *page_id = id;
   return new_page;
 }
 

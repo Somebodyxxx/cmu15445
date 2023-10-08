@@ -10,10 +10,12 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
+#include <mutex>
 #include <queue>
 #include <string>
 #include <vector>
 
+#include "common/config.h"
 #include "concurrency/transaction.h"
 #include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_internal_page.h"
@@ -24,6 +26,8 @@
 namespace bustub {
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
+
+enum class OperationType { SEARCH = 0, INSERT, DELETE };
 
 /**
  * Main class providing the API for the Interactive B+ Tree.
@@ -85,15 +89,19 @@ class BPlusTree {
   void ToString(BPlusTreePage *page, BufferPoolManager *bpm) const;
 
   /* query\insert 实现子函数 */
-  auto FindLeaf(const KeyType &key) -> LeafPage *;
-  void InsertIntoLeaf(const KeyType &key, const ValueType &value);
+  auto FindLeaf(const KeyType &key, OperationType type, Transaction *transaction = nullptr) -> LeafPage *;
+  auto InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr) -> bool;
   auto LeafSplit(LeafPage *leaf_node) -> LeafPage *;
   auto InternalSplit(InternalPage *internal_page) -> InternalPage *;
-  void InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node);
-  void UpdataParentKey(KeyType old_key, KeyType new_key, BPlusTreePage *cur_node);
-  auto RedistributeBrother(const KeyType &key, BPlusTreePage *cur) -> bool;
-  void MergeBrother(const KeyType &key, BPlusTreePage *cur);
-
+  void InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node, Transaction *transaction = nullptr);
+  // void UpdataParentKey(KeyType old_key, KeyType new_key, BPlusTreePage *cur_node, Transaction *transaction = nullptr);
+  auto RedistributeBrother(const KeyType &key, BPlusTreePage *cur, Transaction *transaction = nullptr) -> bool;
+  void MergeBrother(const KeyType &key, BPlusTreePage *cur, Transaction *transaction);
+  auto IsSafe(const BPlusTreePage* cur_node,OperationType type) -> bool;
+  void ReleaseAlllockBefore(OperationType type,Transaction *transaction = nullptr);
+  void DeletePageTogether(Transaction* transaction = nullptr);
+  void SetRootPageId(page_id_t new_page_id);
+  
   // member variable
   std::string index_name_;
   page_id_t root_page_id_ = -1;
@@ -101,6 +109,7 @@ class BPlusTree {
   KeyComparator comparator_;
   int leaf_max_size_;
   int internal_max_size_;
+  mutable std::mutex root_lock_;
 };
 
 }  // namespace bustub
