@@ -10,7 +10,8 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
-#include <mutex>
+#include <deque>
+#include <mutex>  // NOLINT
 #include <queue>
 #include <string>
 #include <vector>
@@ -89,19 +90,23 @@ class BPlusTree {
   void ToString(BPlusTreePage *page, BufferPoolManager *bpm) const;
 
   /* query\insert 实现子函数 */
-  auto FindLeaf(const KeyType &key, OperationType type, Transaction *transaction = nullptr) -> LeafPage *;
-  auto InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr) -> bool;
+  auto FindLeaf(const KeyType &key, OperationType type, Transaction *transaction) -> LeafPage *;
+  auto InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction) -> bool;
   auto LeafSplit(LeafPage *leaf_node) -> LeafPage *;
   auto InternalSplit(InternalPage *internal_page) -> InternalPage *;
-  void InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node, Transaction *transaction = nullptr);
-  // void UpdataParentKey(KeyType old_key, KeyType new_key, BPlusTreePage *cur_node, Transaction *transaction = nullptr);
-  auto RedistributeBrother(const KeyType &key, BPlusTreePage *cur, Transaction *transaction = nullptr) -> bool;
-  void MergeBrother(const KeyType &key, BPlusTreePage *cur, Transaction *transaction);
-  auto IsSafe(const BPlusTreePage* cur_node,OperationType type) -> bool;
-  void ReleaseAlllockBefore(OperationType type,Transaction *transaction = nullptr);
-  void DeletePageTogether(Transaction* transaction = nullptr);
+  void InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node, Transaction *transaction);
+  // void UpdataParentKey(KeyType old_key, KeyType new_key, BPlusTreePage *cur_node, Transaction *transaction =
+  // nullptr);
+  auto RedistributeBrother(const KeyType &key, BPlusTreePage *cur, Transaction *transaction,
+                           std::deque<page_id_t> &need_to_unpin_last) -> bool;
+
+  auto MergeBrother(const KeyType &key, BPlusTreePage *cur, Transaction *transaction,
+                    std::deque<page_id_t> &need_to_unpin_last) -> bool;
+  auto IsSafe(const BPlusTreePage *cur_node, OperationType type) -> bool;
+  void ReleaseAlllockBefore(OperationType type, Transaction *transaction);
+  void DeletePageTogether(Transaction *transaction);
   void SetRootPageId(page_id_t new_page_id);
-  
+
   // member variable
   std::string index_name_;
   page_id_t root_page_id_ = -1;

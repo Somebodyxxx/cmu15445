@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "buffer/buffer_pool_manager_instance.h"
+#include <cassert>
 #include <cstddef>
 #include <cstdlib>
 
@@ -123,6 +124,7 @@ auto BufferPoolManagerInstance::UnpinPgImp(page_id_t page_id, bool is_dirty) -> 
   if (!page_table_->Find(page_id, index)) {
     return false;
   }
+  // assert(pages_[index].pin_count_ > 0);
   if (pages_[index].pin_count_ <= 0) {
     return false;
   }

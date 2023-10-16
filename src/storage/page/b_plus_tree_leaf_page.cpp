@@ -14,6 +14,7 @@
 #include <utility>
 
 #include "common/exception.h"
+#include "common/logger.h"
 #include "common/rid.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 #include "storage/page/b_plus_tree_page.h"
@@ -83,7 +84,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::FindKey(const KeyType &key, ValueType &value, c
   //   }
   // }
   // return false;
-  assert(GetSize() <= GetMaxSize());
+  // assert(GetSize() <= GetMaxSize());
   for (int i = 0; i < GetSize(); i++) {
     if (comparator_(array_[i].first, key) == 0) {
       value = array_[i].second;
@@ -143,9 +144,18 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, const KeyComparator 
   int index = FindIndex(key, comparator_);
   if (comparator_(array_[index].first, key) != 0) {
     // 没找对，不存在该key，不能删
+    // LOG_DEBUG("no key to remove in this leafnode , return...");
     return;
   }
   int size = GetSize();
+
+  // 如果没有这句if，index找到了size处，for虽然不会进去，最后size--会执行。
+  if (index >= size) {
+    // 没找对，不存在该key，不能删
+    // LOG_DEBUG("no key to remove in this leafnode , return...");
+    return;
+  }
+
   for (int i = index; i + 1 < size; i++) {
     array_[i] = array_[i + 1];
   }
@@ -155,18 +165,18 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(const KeyType &key, const KeyComparator 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::PopBack() -> MappingType {
   int size = GetSize();
-  MappingType kv = std::make_pair(array_[size].first, array_[size].second);
+  MappingType kv = std::make_pair(array_[size - 1].first, array_[size - 1].second);
   IncreaseSize(-1);
   return kv;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::PushFront(MappingType kv) {
-  int size = GetSize();
-  for (int i = 0; i < size; i++) {
-    array_[i + 1] = array_[i];
-  }
+  int old_size = GetSize();
   IncreaseSize(1);
+  for (int i = old_size; i > 0; i--) {
+    array_[i] = array_[i - 1];
+  }
   array_[0] = kv;
 }
 

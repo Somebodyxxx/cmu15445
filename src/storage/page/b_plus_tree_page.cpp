@@ -41,13 +41,13 @@ void BPlusTreePage::SetMaxSize(int size) { max_size_ = size; }
  */
 auto BPlusTreePage::GetMinSize() const -> int {
   if (IsRootPage()) {
-    return IsLeafPage() ? 1 : 2;
+    return IsLeafPage() ? 0 : 2;
   }
   if (IsLeafPage()) {
-    return (max_size_ + 1) / 2;  // 叶子节点，key=n ,n/2取上整
+    return max_size_ / 2;  // 叶子节点，取下整
   }
   // 非叶子节点
-  return (max_size_ - 1 + 1) / 2 + 1;  // 有效key = n-1, (n-1)/2取上整
+  return (max_size_ + 1) / 2;  // 取上整
 }
 
 /*

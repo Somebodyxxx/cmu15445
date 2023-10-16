@@ -109,18 +109,18 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetValue0(const ValueType &value) {
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::PopBack() -> MappingType {
   int size = GetSize();
-  MappingType kv = std::make_pair(array_[size].first, array_[size].second);
+  MappingType kv = std::make_pair(array_[size - 1].first, array_[size - 1].second);
   IncreaseSize(-1);
   return kv;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::PushFront(MappingType kv) {
-  int size = GetSize();
-  for (int i = 0; i < size; i++) {
-    array_[i + 1] = array_[i];
-  }
+  int old_size = GetSize();
   IncreaseSize(1);
+  for (int i = old_size; i > 0; i--) {
+    array_[i] = array_[i - 1];
+  }
   array_[0] = kv;
 }
 
@@ -145,7 +145,7 @@ INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveByIndex(int index) {
   int size = GetSize();
   for (int i = index; i + 1 < size; i++) {
-    array_[index] = array_[index + 1];
+    array_[i] = array_[i + 1];
   }
   IncreaseSize(-1);
 }

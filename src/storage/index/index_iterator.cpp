@@ -35,11 +35,11 @@ auto INDEXITERATOR_TYPE::operator*() -> const MappingType & { return leaf_node_-
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
   int leaf_size = leaf_node_->GetSize();
-  if (key_index_ > leaf_size) {
+  if (key_index_ >= leaf_size) {
     throw "B+ tree index_iterator '++' out of range";
     assert(0);
   }
-  if (key_index_ != leaf_size) {
+  if (key_index_ < leaf_size - 1) {
     key_index_++;
     return *this;
   }
